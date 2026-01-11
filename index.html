@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>湘南相模急行電鉄 (SER) | 公式サイト</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    
+    <header>
+        <div class="container header-flex">
+            <div class="brand">
+                <div class="brand-name">
+                    <h1>湘南相模急行電鉄</h1>
+                    <span>Shonan-Sagami Express Railway</span>
+                </div>
+            </div>
+            <button class="menu-toggle" id="menu-toggle"><i class="fas fa-bars"></i></button>
+            <nav id="main-nav">
+                <ul>
+                    <li><a href="#news">ニュース</a></li>
+                    <li><a href="#routemap">路線図</a></li>
+                    <li><a href="#trains">車両紹介</a></li>
+                    <li><a href="#tickets">おトクなきっぷ</a></li>
+                    <li><a href="#airport">空港延伸計画</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+    
+    <section class="main-visual">
+        <div class="hero-overlay">
+            <h2>海と街、人と未来を最速で繋ぐ。</h2>
+            <p>SERは、神奈川を縦断する新しい動脈です。</p>
+            <div class="hero-btns">
+                <a href="#" class="btn-primary"><i class="fas fa-search"></i> 時刻表検索</a>
+                <a href="#" class="btn-secondary"><i class="fas fa-yen-sign"></i> 運賃案内</a>
+            </div>
+        </div>
+    </section>
+
+    <div class="top-ticker">
+        <div class="container ticker-flex">
+            <span class="badge">運行情報</span>
+            <div class="ticker-text">
+                <p id="status-msg">【平常運転】現在、全線で平常通り運転しております。</p>
+            </div>
+            <span class="update-time" id="update-time">1:29更新</span>
+        </div>
+    </div>
+
+    <main class="container">
+        <section id="news" class="section">
+            <h3 class="section-title">重要なお知らせ・ニュース</h3>
+            <div class="news-list">
+                <article class="news-item">
+                    <span class="news-date">2026.01.12</span>
+                    <span class="news-category label-dia">ダイヤ改正</span>
+                    <a href="#" class="news-link">【重要】新種別「区間急行」の導入およびダイヤ改正のお知らせ</a>
+                </article>
+                <article class="news-item">
+                    <span class="news-date">2026.01.10</span>
+                    <span class="news-category label-event">イベント</span>
+                    <a href="#" class="news-link">「三崎まぐろ祭り」開催に伴う臨時特急列車の運行について</a>
+                </article>
+                <article class="news-item">
+                    <span class="news-date">2026.01.05</span>
+                    <span class="news-category label-ticket">チケット</span>
+                    <a href="#" class="news-link">「SER 三崎・由比ヶ浜フリーパス」の発売を開始しました</a>
+                </article>
+            </div>
+        </section>
+
+        <section id="routemap" class="section">
+            <h3 class="section-title">路線図</h3>
+            <div class="route-map">
+                <img src="./image/KANAGAWA_Line_20260111135358.png" class="routemap-image" alt="神奈川線路線図">
+                <img src="./image/NISHI-MIURA_Line_3.png" class="routemap-image" alt="西三浦線路線図">
+            </div>
+        </section>
+
+        <section id="trains" class="section">
+            <h3 class="section-title">車両紹介</h3>
+            <div class="train-grid">
+                <article class="train-card">
+                    <div class="train-tag">特急・準特急</div>
+                    <h4>2000系 Blue Horizon</h4>
+                    <p>相模湾の水平線をイメージした流線型。全車転換クロスシートで、快適な旅を保証します。</p>
+                </article>
+                <article class="train-card">
+                    <div class="train-tag secondary">区間急行・普通</div>
+                    <h4>1500系 Urban Liner</h4>
+                    <p>銀色のステンレスボディにSERブルーを纏った主力車両。高加速・高減速で過密ダイヤを支えます。</p>
+                </article>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <h4 style="font-weight: bold; font-size: 18px; margin-bottom: 10px;">湘南相模急行電鉄 (SER)</h4>
+            <p style="font-weight: 200; font-size: 13px;">〒251-0000 神奈川県鎌倉市小町４丁目６ー１</p>
+            <p class="copyright">&copy; 2026 Shonan-Sagami Express Railway</p>
+            <p class="copyright disclaimer">湘南相模急行電鉄は架空の創作物であり、実際の地名・施設名とは一切関係ございません。</p>
+            <a class="footer-link" href="https://fictional-railway.github.io/myrailways/">架空鉄道一覧はこちらから</a>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
