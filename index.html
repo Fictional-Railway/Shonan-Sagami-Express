@@ -36,12 +36,13 @@
             <p>SERは、神奈川を縦断する新しい動脈です。</p>
             <div class="hero-btns">
                 <a href="#" class="btn-primary"><i class="fas fa-search"></i> 時刻表検索</a>
-                <a href="#" class="btn-secondary"><i class="fas fa-yen-sign"></i> 運賃案内</a>
+                <a href="#" class="btn-primary2"><i class="fas fa-yen-sign"></i> 運賃案内</a>
             </div>
         </div>
     </section>
 
     <div class="top-ticker">
+        
         <div class="container ticker-flex">
             <span class="badge">運行情報</span>
             <div class="ticker-text">
@@ -52,6 +53,40 @@
     </div>
 
     <main class="container">
+
+        <section class="search-section">
+        <div class="container">
+            <div class="search-box-wrapper">
+                <h3 class="search-title"><i class="fas fa-search"></i> 乗換・運賃検索</h3>
+                <form id="search-form" onsubmit="return false;">
+                    <div class="search-inputs">
+                        <div class="input-group">
+                            <label><i class="fas fa-map-marker-alt"></i> 出発</label>
+                            <select id="station-from" required>
+                                <option value="">駅を選択</option>
+                                </select>
+                        </div>
+                        <div class="arrow-icon"><i class="fas fa-arrow-right"></i></div>
+                        <div class="input-group">
+                            <label><i class="fas fa-map-marker"></i> 到着</label>
+                            <select id="station-to" required>
+                                <option value="">駅を選択</option>
+                                </select>
+                        </div>
+                        <div class="input-group time-group">
+                            <label><i class="far fa-clock"></i> 日時</label>
+                            <input type="time" id="search-time" value="10:00" required>
+                        </div>
+                    </div>
+                    <button type="button" id="btn-search" class="btn-search">検索する</button>
+                </form>
+            </div>
+            
+            <div id="search-results" class="search-results" style="display: none;">
+                </div>
+        </div>
+    </section>
+
         <section id="news" class="section">
             <h3 class="section-title">重要なお知らせ・ニュース</h3>
             <div class="news-list">
