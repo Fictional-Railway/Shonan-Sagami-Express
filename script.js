@@ -1,6 +1,7 @@
 /* ============================================================
-   湘南相模急行電鉄 (SER) 統合運行管理システム Ver 8.0
+   湘南相模急行電鉄 (SER) 統合運行管理システム Ver 9.0
    Features: 潮風ライナー, 特急優先検索, 駅ナンバリング, 始発終電判定
+   Update: 追い越し・待避ロジック (Passing Wait Logic) 実装
    ============================================================ */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -29,6 +30,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 const SERVICE_START = 5 * 60;  // 05:00
 const SERVICE_END = 25 * 60 + 30; // 25:30
+
+// ★ 通過待ち（待避）を行う主要駅の定義
+const PASSING_HUBS = ["綾瀬中央", "藤沢", "新逗子", "衣笠インター", "二俣川", "三崎口"];
 
 // 1. 神奈川線 (SS)
 const lineKanagawa = {
@@ -379,25 +383,47 @@ function performSearch() {
             isFirstStation = false;
         }
 
-        // 列車種別と速度
+        // 列車種別・速度・通過待ち判定
         let type = "各駅停車";
         let speedFactor = 1.0;
+        let passingWaitTime = 0;
+        let waitingHubs = [];
         
         if (seg.isLimitedExp) {
             type = "潮風ライナー";
-            speedFactor = 1.0; // Graph構築時に既にコストを小さくしているので1.0でOK
-            totalLtdFee += 500; // 特急料金加算
+            speedFactor = 1.0; 
+            totalLtdFee += 500; 
         } else if (seg.allExpress) {
             type = (seg.lineId === "SS" || seg.lineId === "SM") ? "準特急" : "急行"; 
             speedFactor = 0.75;
+        } else {
+            // ★ 各駅停車の通過待ちロジック
+            // セグメント内の停車駅をスキャンし、待避駅（PASSING_HUBS）が含まれていれば待ち時間を追加
+            // ただし、乗車駅(from)や下車駅(to)自体が待避駅の場合は、乗降中なので待ち時間に含めない
+            seg.stops.forEach(st => {
+                if (PASSING_HUBS.includes(st) && st !== seg.from && st !== seg.to) {
+                    passingWaitTime += 4; // 1駅につき4分の待ち合わせ
+                    waitingHubs.push(st);
+                }
+            });
         }
         
-        const duration = Math.ceil(seg.rawDuration * speedFactor);
-        const arrivalMins = departureMins + duration;
+        const runDuration = Math.ceil(seg.rawDuration * speedFactor);
+        const totalSegDuration = runDuration + passingWaitTime;
+        const arrivalMins = departureMins + totalSegDuration;
 
         // 運賃計算
-        const fare = 150 + (Math.floor(duration / 3) * 20); 
+        const fare = 150 + (Math.floor(runDuration / 3) * 20); 
         totalFare += (i === 0) ? fare : (fare - 50);
+
+        // HTML生成（通過待ちがある場合は注釈を表示）
+        let waitNote = '';
+        if (passingWaitTime > 0) {
+            waitNote = `<div style="margin-top:4px; font-size:11px; color:#e67e22;">
+                <span style="background:#f39c12; color:white; padding:1px 4px; border-radius:3px;">通過待</span> 
+                ${waitingHubs.join("、")} で急行・特急の通過待ち
+            </div>`;
+        }
 
         timelineHTML += `
             <div class="train-info" style="border-left: 4px solid ${seg.lineColor}; padding-left:10px; margin: 5px 0 5px 15px;">
@@ -405,8 +431,9 @@ function performSearch() {
                     ${seg.lineName} [${type}]
                 </div>
                 <div style="font-size:12px; color:#666;">
-                    ${minsToTimeRailway(departureMins)}発 → ${minsToTimeRailway(arrivalMins)}着 (${duration}分)
+                    ${minsToTimeRailway(departureMins)}発 → ${minsToTimeRailway(arrivalMins)}着 (${totalSegDuration}分)
                 </div>
+                ${waitNote}
             </div>`;
 
         currentMins = arrivalMins;
@@ -428,7 +455,7 @@ function performSearch() {
             <div class="result-card">
                 <div class="result-header" style="background:${totalLtdFee > 0 ? '#b4b4b4' : '#b4b4b4'}; color:#4b4b4b;">
                     <div class="route-summary" style="font-size:1.1em;">
-                        ${fromVal} <small>から</small> ${toVal} <small>までの経路</small>
+                        ${fromVal} ➔ ${toVal}
                     </div>
                     <div class="route-meta" style="margin-top:5px; color:#4b4b4b; font-size:0.9em;">
                         到着: <strong>${minsToTimeRailway(currentMins)}</strong> / 所要: ${totalDuration}分<br>
