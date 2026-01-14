@@ -1,21 +1,16 @@
 /* ============================================================
-   湘南相模急行電鉄 (SER) 統合運行管理システム Ver 3.0
+   湘南相模急行電鉄 (SER) 統合運行管理システム Ver 4.0
    Supported Lines: 神奈川線, 西三浦線, 衣笠線, 南大和線, 宮ヶ瀬線
+   Features: リアルタイムダイヤ計算, 乗り継ぎ最適化
    ============================================================ */
 
 document.addEventListener('DOMContentLoaded', () => {
-    // ---------------------------------------------------
-    // 1. UI制御：スマホメニュー開閉
-    // ---------------------------------------------------
+    // UI制御
     const toggle = document.getElementById('menu-toggle');
     const nav = document.getElementById('main-nav');
-    if (toggle && nav) {
-        toggle.addEventListener('click', () => nav.classList.toggle('active'));
-    }
+    if (toggle && nav) toggle.addEventListener('click', () => nav.classList.toggle('active'));
 
-    // ---------------------------------------------------
-    // 2. UI制御：運行情報の時刻自動更新
-    // ---------------------------------------------------
+    // 運行情報の時刻更新
     const updateTickerTime = () => {
         const now = new Date();
         const timeStr = `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}更新`;
@@ -23,32 +18,29 @@ document.addEventListener('DOMContentLoaded', () => {
         if (el) el.textContent = timeStr;
     };
     updateTickerTime();
-    setInterval(updateTickerTime, 60000); // 1分ごとに更新
+    setInterval(updateTickerTime, 60000);
 
-    // ---------------------------------------------------
-    // 3. 検索システム初期化
-    // ---------------------------------------------------
+    // 検索システム初期化
     initSearchSystem();
 });
 
 
 /* ============================================================
-   路線・駅データ定義 (全5路線網羅)
-   isExpress: 特急・準特急停車駅フラグ
+   路線・駅・ダイヤ定義
+   baseInterval: その路線の基本運行間隔（分）
    ============================================================ */
 
-// 1. 神奈川線 (Kanagawa Line) [SK] - 基幹路線
-// 接続: 本厚木(宮ヶ瀬線), 綾瀬中央(南大和線), 鎌倉(西三浦線)
+// 1. 神奈川線 (SK) - 本線なので頻繁に来る (10分間隔)
 const lineKanagawa = {
-    id: "SK", name: "神奈川線", color: "#3498db",
+    id: "SK", name: "神奈川線", color: "#3498db", baseInterval: 10,
     stations: [
-        { name: "本厚木", time: 0, isExpress: true }, // 宮ヶ瀬線接続
+        { name: "本厚木", time: 0, isExpress: true },
         { name: "厚木", time: 3, isExpress: false },
         { name: "海老名", time: 6, isExpress: true },
         { name: "東海老名", time: 9, isExpress: false },
         { name: "相模早川", time: 12, isExpress: false },
         { name: "寺尾台", time: 15, isExpress: false },
-        { name: "綾瀬中央", time: 18, isExpress: true }, // 南大和線接続
+        { name: "綾瀬中央", time: 18, isExpress: true },
         { name: "南綾瀬", time: 21, isExpress: false },
         { name: "相模落合", time: 24, isExpress: false },
         { name: "葛原", time: 27, isExpress: false },
@@ -62,16 +54,16 @@ const lineKanagawa = {
         { name: "手広", time: 53, isExpress: false },
         { name: "深沢", time: 56, isExpress: true },
         { name: "常盤", time: 59, isExpress: false },
-        { name: "鎌倉", time: 64, isExpress: true } // 西三浦線接続
+        { name: "鎌倉", time: 64, isExpress: true }
     ]
 };
 
-// 2. 西三浦線 (Nishi-Miura Line) [SM] - 海岸線
-// 接続: 鎌倉(神奈川線), 武山(衣笠線)
+// 2. 西三浦線 (SM) - 観光路線 (15分間隔)
+// ★武山を準特急停車(true)に変更済み
 const lineMiura = {
-    id: "SM", name: "西三浦線", color: "#f1c40f",
+    id: "SM", name: "西三浦線", color: "#f1c40f", baseInterval: 15,
     stations: [
-        { name: "鎌倉", time: 0, isExpress: true }, // 神奈川線接続
+        { name: "鎌倉", time: 0, isExpress: true },
         { name: "由比ヶ浜", time: 2, isExpress: false },
         { name: "材木座", time: 4, isExpress: false },
         { name: "小坪海浜公園", time: 7, isExpress: false },
@@ -91,7 +83,7 @@ const lineMiura = {
         { name: "長坂", time: 46, isExpress: false },
         { name: "市民病院前", time: 49, isExpress: false },
         { name: "駐屯地南", time: 52, isExpress: false },
-        { name: "武山", time: 55, isExpress: false }, // 衣笠線接続
+        { name: "武山", time: 55, isExpress: true }, // ★準特急停車！
         { name: "発声", time: 58, isExpress: true },
         { name: "三崎口", time: 61, isExpress: true },
         { name: "北小網代", time: 64, isExpress: false },
@@ -106,12 +98,11 @@ const lineMiura = {
     ]
 };
 
-// 3. 衣笠線 (Kinugasa Line) [KI] - 紫色
-// 接続: 武山(西三浦線)
+// 3. 衣笠線 (KI) - 支線 (20分間隔)
 const lineKinugasa = {
-    id: "KI", name: "衣笠線", color: "#9b59b6",
+    id: "KI", name: "衣笠線", color: "#9b59b6", baseInterval: 20,
     stations: [
-        { name: "武山", time: 0, isExpress: true }, // 西三浦線接続
+        { name: "武山", time: 0, isExpress: true },
         { name: "一騎塚", time: 2, isExpress: false },
         { name: "武山団地", time: 5, isExpress: false },
         { name: "東漸寺", time: 8, isExpress: false },
@@ -127,30 +118,28 @@ const lineKinugasa = {
     ]
 };
 
-// 4. 南大和線 (Minami-Yamato Line) [SY] - オレンジ
-// 接続: 綾瀬中央(神奈川線)
+// 4. 南大和線 (SY) - 支線 (20分間隔)
 const lineYamato = {
-    id: "SY", name: "南大和線", color: "#e67e22",
+    id: "SY", name: "南大和線", color: "#e67e22", baseInterval: 20,
     stations: [
         { name: "二俣川", time: 0, isExpress: true },
         { name: "桃源台", time: 3, isExpress: false },
         { name: "神明台", time: 6, isExpress: false },
         { name: "阿久和", time: 9, isExpress: false },
         { name: "和泉", time: 12, isExpress: false },
-        { name: "上渋谷", time: 15, isExpress: true }, // 画像ではKami-Kouza
+        { name: "上渋谷", time: 15, isExpress: true },
         { name: "相模高座渋谷", time: 18, isExpress: false },
         { name: "上土棚", time: 21, isExpress: false },
-        { name: "南綾瀬", time: 24, isExpress: false }, // 注:神奈川線の南綾瀬とは別駅扱い(接続なし)とするか、同名駅とするか。今回は別路線接続駅が綾瀬中央なので、ここは通過扱いの別駅とします
-        { name: "綾瀬中央", time: 27, isExpress: true } // 神奈川線接続
+        { name: "南綾瀬", time: 24, isExpress: false },
+        { name: "綾瀬中央", time: 27, isExpress: true }
     ]
 };
 
-// 5. 宮ヶ瀬線 (Miyagase Line) [SG] - 緑
-// 接続: 本厚木(神奈川線)
+// 5. 宮ヶ瀬線 (SG) - 山岳支線 (20分間隔)
 const lineMiyagase = {
-    id: "SG", name: "宮ヶ瀬線", color: "#27ae60",
+    id: "SG", name: "宮ヶ瀬線", color: "#27ae60", baseInterval: 20,
     stations: [
-        { name: "本厚木", time: 0, isExpress: true }, // 神奈川線接続
+        { name: "本厚木", time: 0, isExpress: true },
         { name: "戸室団地", time: 2, isExpress: false },
         { name: "相模福伝寺", time: 4, isExpress: false },
         { name: "駒ヶ原・古松台", time: 7, isExpress: false },
@@ -170,75 +159,57 @@ const lineMiyagase = {
     ]
 };
 
-// 全路線配列
 const allLines = [lineKanagawa, lineMiura, lineKinugasa, lineYamato, lineMiyagase];
 
 /* ============================================================
-   グラフ理論による経路探索ロジック
-   (どんなに複雑な乗換も自動計算します)
+   グラフ理論 & ダイヤ計算ロジック
    ============================================================ */
 
-// グラフデータ構築
 let stationGraph = {};
 
 function buildGraph() {
     stationGraph = {};
-    
     allLines.forEach(line => {
         for (let i = 0; i < line.stations.length; i++) {
             const current = line.stations[i];
             const next = line.stations[i+1];
             
-            // ノード作成
             if (!stationGraph[current.name]) stationGraph[current.name] = [];
             
             if (next) {
                 if (!stationGraph[next.name]) stationGraph[next.name] = [];
-                
-                // 隣接リストに追加 (双方向)
                 const cost = Math.abs(next.time - current.time);
                 
-                // 順方向
-                stationGraph[current.name].push({
-                    to: next.name,
+                const edge = {
                     lineId: line.id,
                     lineName: line.name,
                     lineColor: line.color,
-                    cost: cost,
-                    isExpress: current.isExpress && next.isExpress // 区間が特急対応か
-                });
-                
-                // 逆方向
-                stationGraph[next.name].push({
-                    to: current.name,
-                    lineId: line.id,
-                    lineName: line.name,
-                    lineColor: line.color,
+                    lineInterval: line.baseInterval, // 運行間隔データ
                     cost: cost,
                     isExpress: current.isExpress && next.isExpress
-                });
+                };
+
+                stationGraph[current.name].push({ to: next.name, ...edge });
+                stationGraph[next.name].push({ to: current.name, ...edge });
             }
         }
     });
 }
 
-// 探索アルゴリズム (幅優先探索の変形)
+// 探索アルゴリズム
 function findPath(startName, endName) {
     if(!stationGraph[startName]) return null;
 
     let queue = [{ name: startName, path: [], totalCost: 0 }];
     let visited = new Set();
     
-    // 簡易的な探索 (最短経路を発見)
+    // 単純な距離(時間)での最短経路を探す
+    // ※ダイヤ待ち時間はここでは考慮せず、経路確定後に計算する
     while (queue.length > 0) {
-        // コスト順にソート (ダイクストラ法っぽく)
         queue.sort((a, b) => a.totalCost - b.totalCost);
         let current = queue.shift();
 
-        if (current.name === endName) {
-            return current.path;
-        }
-
+        if (current.name === endName) return current.path;
         if (visited.has(current.name)) continue;
         visited.add(current.name);
 
@@ -246,57 +217,53 @@ function findPath(startName, endName) {
         if (neighbors) {
             neighbors.forEach(neighbor => {
                 if (!visited.has(neighbor.to)) {
-                    // 乗換コスト計算 (前の路線と違う場合 +7分)
+                    // 乗り換えペナルティ(7分)を仮に入れて探索
                     let transferCost = 0;
                     if (current.path.length > 0) {
                         const lastLeg = current.path[current.path.length - 1];
-                        if (lastLeg.lineId !== neighbor.lineId) {
-                            transferCost = 7; // 標準乗換時間
-                        }
+                        if (lastLeg.lineId !== neighbor.lineId) transferCost = 7;
                     }
-
-                    let newPath = [...current.path, {
-                        from: current.name,
-                        to: neighbor.to,
-                        lineId: neighbor.lineId,
-                        lineName: neighbor.lineName,
-                        lineColor: neighbor.lineColor,
-                        baseCost: neighbor.cost,
-                        isExpressSection: neighbor.isExpress
-                    }];
 
                     queue.push({
                         name: neighbor.to,
-                        path: newPath,
+                        path: [...current.path, { from: current.name, to: neighbor.to, ...neighbor }],
                         totalCost: current.totalCost + neighbor.cost + transferCost
                     });
                 }
             });
         }
     }
-    return null; // 経路なし
+    return null;
 }
 
+// 次の列車発車時刻を計算する関数
+// arrivalTime: 駅に着いた時刻(分), interval: 運行間隔(分)
+function getNextDepartureTime(arrivalTime, interval) {
+    // 例: 10:12着(612分)、間隔10分なら、次は10:20(620分)発
+    // 乗り換え等の最低時間を3分確保する
+    const minDeparture = arrivalTime + 3; 
+    
+    // intervalの倍数で、minDeparture以上の最小の値を計算
+    // 例: minDeparture=615, interval=10 -> 620
+    const remainder = minDeparture % interval;
+    if (remainder === 0) return minDeparture;
+    return minDeparture + (interval - remainder);
+}
 
 /* ============================================================
    UI操作・表示ロジック
    ============================================================ */
 
 function initSearchSystem() {
-    buildGraph(); // グラフ構築
-    
+    buildGraph();
     const fromSelect = document.getElementById('station-from');
     const toSelect = document.getElementById('station-to');
     if (!fromSelect || !toSelect) return;
 
-    // セレクトボックス生成
     const addGroup = (select, line) => {
         let grp = document.createElement('optgroup');
         grp.label = line.name;
         line.stations.forEach(s => {
-            // 重複駅(乗換駅)は一度だけ追加したいが、
-            // ユーザーが選びやすいように各路線グループにあえて残す設計もアリ。
-            // ここではシンプルにそのまま追加。
             let op = document.createElement('option');
             op.value = s.name;
             op.text = s.name;
@@ -329,30 +296,23 @@ function performSearch() {
     const toVal = document.getElementById('station-to').value;
     const timeVal = document.getElementById('search-time').value;
 
-    if (fromVal === toVal) {
-        alert("出発駅と到着駅が同じです。");
-        return;
-    }
+    if (fromVal === toVal) return alert("出発駅と到着駅が同じです。");
 
     const rawPath = findPath(fromVal, toVal);
-    
-    if (!rawPath) {
-        alert("経路が見つかりませんでした。(海を越える移動はまだできません！)");
-        return;
-    }
+    if (!rawPath) return alert("経路が見つかりませんでした。");
 
-    // パスを「乗り物ごとのセグメント」にまとめる
+    // パスをセグメント化
     const segments = [];
     let currentSeg = null;
 
     rawPath.forEach(step => {
         if (!currentSeg || currentSeg.lineId !== step.lineId) {
-            // 新しいセグメント開始
             if (currentSeg) segments.push(currentSeg);
             currentSeg = {
                 lineId: step.lineId,
                 lineName: step.lineName,
                 lineColor: step.lineColor,
+                interval: step.lineInterval, // この路線の運行間隔
                 from: step.from,
                 to: step.to,
                 rawDuration: 0,
@@ -360,92 +320,102 @@ function performSearch() {
                 stops: [step.from]
             };
         }
-        // セグメント更新
         currentSeg.to = step.to;
         currentSeg.stops.push(step.to);
-        currentSeg.rawDuration += step.baseCost;
-        if (!step.isExpressSection) currentSeg.allExpress = false;
+        currentSeg.rawDuration += step.cost;
+        if (!step.isExpress) currentSeg.allExpress = false;
     });
     if (currentSeg) segments.push(currentSeg);
 
-    // 詳細計算とHTML生成
-    let startMins = timeToMins(timeVal);
-    let currentMins = startMins + 3; // 改札入り3分後に出発
+    // ★リアルタイム計算処理★
+    let currentMins = timeToMins(timeVal); // 現在時刻(駅にいる状態)
     let totalFare = 0;
     let timelineHTML = '';
-
-    // 出発駅
-    timelineHTML += `
-        <div class="timeline-point departure">
-            <span class="time">${minsToTime(currentMins)}</span>
-            <span class="station"><strong>${fromVal}</strong> 発</span>
-        </div>`;
+    
+    // 最初の出発
+    // 改札入ってから最初の電車を捕まえる
+    let departureMins = getNextDepartureTime(currentMins - 3, segments[0].interval); 
+    // ※ -3 しているのは、getNextDepartureで+3されるため、入力時刻ちょうど以降の電車を拾う調整
+    
+    let isFirst = true;
 
     segments.forEach((seg, index) => {
-        // 種別判定: 全区間がExpress対応なら準特急/特急、そうでなければ各停
-        // ※宮ヶ瀬線などの支線は「各停」表記にするか、優等が走るならそれにする
-        let type = "各駅停車";
-        let speedFactor = 1.0;
-        
-        if (seg.allExpress) {
-            type = (seg.lineId === "SK" || seg.lineId === "SM") ? "準特急" : "急行"; 
-            speedFactor = 0.75; // 優等列車は速い
-        }
-        
-        const duration = Math.ceil(seg.rawDuration * speedFactor);
-        const arrivalMins = currentMins + duration;
-        
-        // 運賃 (基本150円 + 距離加算)
-        // 路線またぐごとに初乗りがかかる簡易計算(リアル)
-        const fare = 150 + (Math.floor(duration / 3) * 20); 
-        totalFare += (index === 0) ? fare : (fare - 50); // 乗継割引50円
-
-        // 移動バーの描画
-        timelineHTML += `
-            <div class="train-info" style="border-left: 4px solid ${seg.lineColor}; padding-left:10px; margin: 5px 0 5px 15px;">
-                <div style="font-weight:bold; color:${seg.lineColor};">${seg.lineName} [${type}]</div>
-                <div style="font-size:12px; color:#666;">
-                    所要 ${duration}分 / ${seg.stops.length -1}駅
-                </div>
-            </div>`;
-
-        // 到着駅 (最終駅以外は乗換)
-        if (index < segments.length - 1) {
-            // 乗換
+        // 出発時刻決定 (2本目以降は前の到着時刻に基づいて計算)
+        if (!isFirst) {
+            // 前の到着時刻 currentMins から、この路線のintervalに合わせて次の発車を探す
+            departureMins = getNextDepartureTime(currentMins, seg.interval);
+            
+            // 待ち時間計算
+            const waitTime = departureMins - currentMins;
+            
+            // 乗換表示
             timelineHTML += `
             <div class="timeline-point transfer">
-                <span class="time">${minsToTime(arrivalMins)}</span>
-                <span class="station">${seg.to} <span class="transfer-badge">乗換</span></span>
+                <span class="time">${minsToTime(currentMins)}</span>
+                <span class="station">${seg.from} <span class="transfer-badge">乗換</span></span>
+            </div>
+            <div style="font-size:12px; color:000; margin-left:20px; padding:5px 0; font-weight:bold;">
+                ↓ 待ち合わせ ${waitTime}分
             </div>`;
-            
-            // 乗換待ち時間
-            const waitTime = 7; 
-            currentMins = arrivalMins + waitTime;
-            timelineHTML += `<div style="font-size:11px; color:#999; margin-left:20px; padding:5px;">↓ 乗換・待ち合わせ ${waitTime}分</div>`;
         } else {
-            // 最終到着
-            currentMins = arrivalMins;
+            // 最初の出発駅
             timelineHTML += `
-            <div class="timeline-point arrival">
-                <span class="time">${minsToTime(arrivalMins)}</span>
-                <span class="station"><strong>${seg.to}</strong> 着</span>
+            <div class="timeline-point departure">
+                <span class="time">${minsToTime(departureMins)}</span>
+                <span class="station"><strong>${seg.from}</strong> 発</span>
             </div>`;
+            isFirst = false;
         }
+
+        // 移動時間計算
+        let type = "各駅停車";
+        let speedFactor = 1.0;
+        if (seg.allExpress) {
+            type = (seg.lineId === "SK" || seg.lineId === "SM") ? "準特急" : "急行"; 
+            speedFactor = 0.75;
+        }
+        const duration = Math.ceil(seg.rawDuration * speedFactor);
+        const arrivalMins = departureMins + duration;
+
+        // 運賃計算
+        const fare = 150 + (Math.floor(duration / 3) * 20); 
+        totalFare += (index === 0) ? fare : (fare - 50);
+
+        // 移動バー
+        timelineHTML += `
+            <div class="train-info" style="border-left: 4px solid ${seg.lineColor}; padding-left:10px; margin: 5px 0 5px 15px;">
+                <div style="font-weight:bold; color:${seg.lineColor};">
+                    ${seg.lineName} [${type}]
+                </div>
+                <div style="font-size:12px; color:#666;">
+                    ${minsToTime(departureMins)}発 → ${minsToTime(arrivalMins)}着 (所要${duration}分)
+                </div>
+            </div>`;
+        
+        // 現在時刻を到着時刻に進める
+        currentMins = arrivalMins;
     });
 
-    const totalDuration = currentMins - startMins - 3;
+    // 最終到着
+    timelineHTML += `
+        <div class="timeline-point arrival">
+            <span class="time">${minsToTime(currentMins)}</span>
+            <span class="station"><strong>${toVal}</strong> 着</span>
+        </div>`;
+
+    const totalDuration = currentMins - timeToMins(timeVal); // 待ち時間込みの総所要時間
 
     // 結果表示
     const resDiv = document.getElementById('search-results');
     resDiv.style.display = 'block';
     resDiv.innerHTML = `
         <div class="result-card">
-            <div class="result-header" style="background:#444; color:#fff;">
+            <div class="result-header" style="background:#b4b4b4; color:#fff;">
                 <div class="route-summary" style="font-size:1.1em;">
-                    ${fromVal} <small>to</small> ${toVal}
+                    ${fromVal} <small>から</small> ${toVal} <small>までの経路</small>
                 </div>
                 <div class="route-meta" style="margin-top:5px;">
-                    総所要時間: <strong>${totalDuration}分</strong> / 合計運賃: <strong>${totalFare}円</strong>
+                    到着時刻: <strong>${minsToTime(currentMins)}</strong> (総所要: ${totalDuration}分) / 運賃: <strong>${totalFare}円</strong>
                 </div>
             </div>
             <div class="result-body">
