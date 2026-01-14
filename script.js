@@ -371,12 +371,12 @@ function performSearch() {
     // 始発待ちメッセージ
     if (isNextDayStart) {
         timelineHTML += `<div style="background:#e74c3c; color:#fff; padding:10px; border-radius:4px; margin-bottom:15px; font-size:13px;">
-            ⚠️ 本日の運行は終了しました。翌日の始発をご案内します。
+            本日の運行は終了しました。翌日の始発をご案内します。
         </div>`;
     } else if (inputMins < SERVICE_START) {
         // 早朝に検索した場合
         timelineHTML += `<div style="background:#f39c12; color:#fff; padding:5px; border-radius:4px; margin-bottom:10px; font-size:12px;">
-            🌅 始発までお待ちください
+            始発までお待ちください
         </div>`;
     }
 
@@ -416,7 +416,7 @@ function performSearch() {
                 <span class="time">${minsToTimeRailway(currentMins)}</span>
                 <span class="station">${seg.from} <span class="transfer-badge">乗換</span></span>
             </div>
-            <div style="font-size:12px; color:#e74c3c; margin-left:20px; padding:5px 0;">
+            <div style="font-size:12px; color:#4b4b4b; margin-left:20px; padding:5px 0;">
                 ↓ 待ち合わせ ${Math.max(0, departureMins - currentMins)}分
             </div>`;
         } else {
@@ -471,11 +471,11 @@ function performSearch() {
         resDiv.style.display = 'block';
         resDiv.innerHTML = `
             <div class="result-card">
-                <div class="result-header" style="background:#2c3e50; color:#fff;">
+                <div class="result-header" style="background:#b4b4b4; color:#fff;">
                     <div class="route-summary" style="font-size:1.1em;">
-                        ${fromVal} <small>to</small> ${toVal}
+                        ${fromVal} <small>から</small> ${toVal} <small>までの経路</small>
                     </div>
-                    <div class="route-meta" style="margin-top:5px;">
+                    <div class="route-meta" style="margin-top:5px; color:#4b4b4b; font-size:0.9em;">
                         到着: <strong>${minsToTimeRailway(currentMins)}</strong> / 総所要: ${totalDuration}分 / 運賃: ${totalFare}円
                     </div>
                 </div>
