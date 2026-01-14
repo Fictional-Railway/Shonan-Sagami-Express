@@ -1,7 +1,7 @@
 /* ============================================================
-   湘南相模急行電鉄 (SER) 統合運行管理システム Ver 4.0
+   湘南相模急行電鉄 (SER) 統合運行管理システム Ver 5.0
    Supported Lines: 神奈川線, 西三浦線, 衣笠線, 南大和線, 宮ヶ瀬線
-   Features: リアルタイムダイヤ計算, 乗り継ぎ最適化
+   Features: リアルタイムダイヤ, 始発・終電判定, 深夜時間処理
    ============================================================ */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -27,10 +27,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
 /* ============================================================
    路線・駅・ダイヤ定義
-   baseInterval: その路線の基本運行間隔（分）
+   baseInterval: 運行間隔
+   firstTrain: 始発時刻(分) 5:00=300
+   lastTrain: 終電時刻(分) 25:00=1500
    ============================================================ */
 
-// 1. 神奈川線 (SK) - 本線なので頻繁に来る (10分間隔)
+const SERVICE_START = 5 * 60;  // 05:00 始発
+const SERVICE_END = 25 * 60 + 30; // 25:30 (翌01:30) 全線運行終了
+
+// 1. 神奈川線 (SK) - 本線
 const lineKanagawa = {
     id: "SK", name: "神奈川線", color: "#3498db", baseInterval: 10,
     stations: [
@@ -58,8 +63,7 @@ const lineKanagawa = {
     ]
 };
 
-// 2. 西三浦線 (SM) - 観光路線 (15分間隔)
-// ★武山を準特急停車(true)に変更済み
+// 2. 西三浦線 (SM)
 const lineMiura = {
     id: "SM", name: "西三浦線", color: "#f1c40f", baseInterval: 15,
     stations: [
@@ -83,7 +87,7 @@ const lineMiura = {
         { name: "長坂", time: 46, isExpress: false },
         { name: "市民病院前", time: 49, isExpress: false },
         { name: "駐屯地南", time: 52, isExpress: false },
-        { name: "武山", time: 55, isExpress: true }, // ★準特急停車！
+        { name: "武山", time: 55, isExpress: true },
         { name: "発声", time: 58, isExpress: true },
         { name: "三崎口", time: 61, isExpress: true },
         { name: "北小網代", time: 64, isExpress: false },
@@ -98,7 +102,7 @@ const lineMiura = {
     ]
 };
 
-// 3. 衣笠線 (KI) - 支線 (20分間隔)
+// 3. 衣笠線 (KI)
 const lineKinugasa = {
     id: "KI", name: "衣笠線", color: "#9b59b6", baseInterval: 20,
     stations: [
@@ -118,7 +122,7 @@ const lineKinugasa = {
     ]
 };
 
-// 4. 南大和線 (SY) - 支線 (20分間隔)
+// 4. 南大和線 (SY)
 const lineYamato = {
     id: "SY", name: "南大和線", color: "#e67e22", baseInterval: 20,
     stations: [
@@ -135,7 +139,7 @@ const lineYamato = {
     ]
 };
 
-// 5. 宮ヶ瀬線 (SG) - 山岳支線 (20分間隔)
+// 5. 宮ヶ瀬線 (SG)
 const lineMiyagase = {
     id: "SG", name: "宮ヶ瀬線", color: "#27ae60", baseInterval: 20,
     stations: [
@@ -162,7 +166,7 @@ const lineMiyagase = {
 const allLines = [lineKanagawa, lineMiura, lineKinugasa, lineYamato, lineMiyagase];
 
 /* ============================================================
-   グラフ理論 & ダイヤ計算ロジック
+   グラフ構築 & 探索
    ============================================================ */
 
 let stationGraph = {};
@@ -184,7 +188,7 @@ function buildGraph() {
                     lineId: line.id,
                     lineName: line.name,
                     lineColor: line.color,
-                    lineInterval: line.baseInterval, // 運行間隔データ
+                    lineInterval: line.baseInterval,
                     cost: cost,
                     isExpress: current.isExpress && next.isExpress
                 };
@@ -196,15 +200,11 @@ function buildGraph() {
     });
 }
 
-// 探索アルゴリズム
 function findPath(startName, endName) {
     if(!stationGraph[startName]) return null;
-
     let queue = [{ name: startName, path: [], totalCost: 0 }];
     let visited = new Set();
     
-    // 単純な距離(時間)での最短経路を探す
-    // ※ダイヤ待ち時間はここでは考慮せず、経路確定後に計算する
     while (queue.length > 0) {
         queue.sort((a, b) => a.totalCost - b.totalCost);
         let current = queue.shift();
@@ -217,13 +217,11 @@ function findPath(startName, endName) {
         if (neighbors) {
             neighbors.forEach(neighbor => {
                 if (!visited.has(neighbor.to)) {
-                    // 乗り換えペナルティ(7分)を仮に入れて探索
                     let transferCost = 0;
                     if (current.path.length > 0) {
                         const lastLeg = current.path[current.path.length - 1];
                         if (lastLeg.lineId !== neighbor.lineId) transferCost = 7;
                     }
-
                     queue.push({
                         name: neighbor.to,
                         path: [...current.path, { from: current.name, to: neighbor.to, ...neighbor }],
@@ -236,22 +234,57 @@ function findPath(startName, endName) {
     return null;
 }
 
-// 次の列車発車時刻を計算する関数
-// arrivalTime: 駅に着いた時刻(分), interval: 運行間隔(分)
-function getNextDepartureTime(arrivalTime, interval) {
-    // 例: 10:12着(612分)、間隔10分なら、次は10:20(620分)発
-    // 乗り換え等の最低時間を3分確保する
-    const minDeparture = arrivalTime + 3; 
-    
-    // intervalの倍数で、minDeparture以上の最小の値を計算
-    // 例: minDeparture=615, interval=10 -> 620
-    const remainder = minDeparture % interval;
-    if (remainder === 0) return minDeparture;
-    return minDeparture + (interval - remainder);
+/* ============================================================
+   時刻ロジック (始発・終電対応)
+   ============================================================ */
+
+// HH:MM を「鉄道分」に変換 (例: 01:00 -> 25:00 -> 1500分)
+function timeToMinsRailway(t) {
+    const [h, m] = t.split(':').map(Number);
+    // 0～3時は「深夜24時～27時」扱い
+    if (h < 4) return (h + 24) * 60 + m;
+    return h * 60 + m;
 }
 
+// 分を時刻表示に戻す (例: 1500 -> 25:00 ではなく 01:00 表記に直すか、25:00のままにするか)
+// ここでは鉄道っぽく「25:00」のような表記も許容しつつ、わかりやすく整形
+function minsToTimeRailway(m) {
+    let hh = Math.floor(m / 60);
+    let mm = Math.floor(m % 60);
+    // 表示用: 24時を超えたら翌表記にするなどの装飾
+    if (hh >= 24) {
+        return `翌${(hh - 24).toString().padStart(2, '0')}:${mm.toString().padStart(2, '0')}`;
+    }
+    return `${hh.toString().padStart(2, '0')}:${mm.toString().padStart(2, '0')}`;
+}
+
+// 次の列車計算 (始発・終電ロジック)
+// 戻り値: -1 なら「終電終了」
+function getNextDepartureTime(currentMins, interval) {
+    // 1. まだ始発前の場合 -> 始発まで待つ
+    if (currentMins < SERVICE_START) {
+        return SERVICE_START;
+    }
+
+    // 2. 既に終電時間を過ぎている場合
+    if (currentMins > SERVICE_END) {
+        return -1; 
+    }
+
+    // 3. 通常運行計算
+    const remainder = currentMins % interval;
+    let departure = (remainder === 0) ? currentMins : currentMins + (interval - remainder);
+
+    // 計算した発車時刻が終電を超えていたらアウト
+    if (departure > SERVICE_END) {
+        return -1;
+    }
+    return departure;
+}
+
+
 /* ============================================================
-   UI操作・表示ロジック
+   UI操作・検索実行
    ============================================================ */
 
 function initSearchSystem() {
@@ -280,17 +313,6 @@ function initSearchSystem() {
     document.getElementById('btn-search').addEventListener('click', performSearch);
 }
 
-function timeToMins(t) {
-    const [h, m] = t.split(':').map(Number);
-    return h * 60 + m;
-}
-
-function minsToTime(m) {
-    let hh = Math.floor(m / 60) % 24;
-    let mm = Math.floor(m % 60);
-    return `${hh.toString().padStart(2, '0')}:${mm.toString().padStart(2, '0')}`;
-}
-
 function performSearch() {
     const fromVal = document.getElementById('station-from').value;
     const toVal = document.getElementById('station-to').value;
@@ -301,7 +323,7 @@ function performSearch() {
     const rawPath = findPath(fromVal, toVal);
     if (!rawPath) return alert("経路が見つかりませんでした。");
 
-    // パスをセグメント化
+    // セグメント化
     const segments = [];
     let currentSeg = null;
 
@@ -312,7 +334,7 @@ function performSearch() {
                 lineId: step.lineId,
                 lineName: step.lineName,
                 lineColor: step.lineColor,
-                interval: step.lineInterval, // この路線の運行間隔
+                interval: step.lineInterval,
                 from: step.from,
                 to: step.to,
                 rawDuration: 0,
@@ -327,47 +349,87 @@ function performSearch() {
     });
     if (currentSeg) segments.push(currentSeg);
 
-    // ★リアルタイム計算処理★
-    let currentMins = timeToMins(timeVal); // 現在時刻(駅にいる状態)
+    // --- 計算実行 ---
+    
+    // 入力時間を鉄道時間に変換
+    let inputMins = timeToMinsRailway(timeVal);
+    
+    // もし入力が「終電後(25:30〜)」かつ「始発前(29:00=翌5:00)」の間なら
+    // 「本日の運行は終了しました」として、翌日の始発検索に切り替えるか警告する
+    // ここでは親切に「翌日の始発」を案内する
+    let isNextDayStart = false;
+    if (inputMins > SERVICE_END) {
+        inputMins = SERVICE_START; // 強制的に翌朝5時にセット
+        isNextDayStart = true;
+    }
+
+    let currentMins = inputMins;
     let totalFare = 0;
     let timelineHTML = '';
+    let isRoutePossible = true;
     
-    // 最初の出発
-    // 改札入ってから最初の電車を捕まえる
-    let departureMins = getNextDepartureTime(currentMins - 3, segments[0].interval); 
-    // ※ -3 しているのは、getNextDepartureで+3されるため、入力時刻ちょうど以降の電車を拾う調整
-    
-    let isFirst = true;
+    // 始発待ちメッセージ
+    if (isNextDayStart) {
+        timelineHTML += `<div style="background:#e74c3c; color:#fff; padding:10px; border-radius:4px; margin-bottom:15px; font-size:13px;">
+            ⚠️ 本日の運行は終了しました。翌日の始発をご案内します。
+        </div>`;
+    } else if (inputMins < SERVICE_START) {
+        // 早朝に検索した場合
+        timelineHTML += `<div style="background:#f39c12; color:#fff; padding:5px; border-radius:4px; margin-bottom:10px; font-size:12px;">
+            🌅 始発までお待ちください
+        </div>`;
+    }
 
-    segments.forEach((seg, index) => {
-        // 出発時刻決定 (2本目以降は前の到着時刻に基づいて計算)
-        if (!isFirst) {
-            // 前の到着時刻 currentMins から、この路線のintervalに合わせて次の発車を探す
-            departureMins = getNextDepartureTime(currentMins, seg.interval);
-            
-            // 待ち時間計算
-            const waitTime = departureMins - currentMins;
-            
-            // 乗換表示
+    let isFirstStation = true;
+
+    // ループ処理
+    for (let i = 0; i < segments.length; i++) {
+        const seg = segments[i];
+        
+        // 発車時刻を計算
+        // 改札移動等で+3分してから次の電車を探す
+        let searchTimeBase = (isFirstStation) ? currentMins : currentMins + 3; 
+        
+        let departureMins = getNextDepartureTime(searchTimeBase, seg.interval);
+
+        // ★終電判定★
+        if (departureMins === -1) {
             timelineHTML += `
-            <div class="timeline-point transfer">
-                <span class="time">${minsToTime(currentMins)}</span>
-                <span class="station">${seg.from} <span class="transfer-badge">乗換</span></span>
-            </div>
-            <div style="font-size:12px; color:000; margin-left:20px; padding:5px 0; font-weight:bold;">
-                ↓ 待ち合わせ ${waitTime}分
-            </div>`;
-        } else {
-            // 最初の出発駅
-            timelineHTML += `
-            <div class="timeline-point departure">
-                <span class="time">${minsToTime(departureMins)}</span>
-                <span class="station"><strong>${seg.from}</strong> 発</span>
-            </div>`;
-            isFirst = false;
+                <div class="timeline-point transfer" style="opacity:0.6;">
+                    <span class="station">${seg.from}</span>
+                </div>
+                <div style="background:#c0392b; color:white; padding:10px; margin:10px 0; border-radius:4px; font-weight:bold;">
+                    ⛔ 終電接続なし<br>
+                    <span style="font-size:0.8em; font-weight:normal;">これより先の ${seg.lineName} は運行を終了しました。</span>
+                </div>
+            `;
+            isRoutePossible = false;
+            break; // 計算打ち切り
         }
 
-        // 移動時間計算
+        // 待ち時間
+        const waitTime = departureMins - searchTimeBase; // 単純な待ち時間
+
+        if (!isFirstStation) {
+            timelineHTML += `
+            <div class="timeline-point transfer">
+                <span class="time">${minsToTimeRailway(currentMins)}</span>
+                <span class="station">${seg.from} <span class="transfer-badge">乗換</span></span>
+            </div>
+            <div style="font-size:12px; color:#e74c3c; margin-left:20px; padding:5px 0;">
+                ↓ 待ち合わせ ${Math.max(0, departureMins - currentMins)}分
+            </div>`;
+        } else {
+            // 始発駅での発車
+            timelineHTML += `
+            <div class="timeline-point departure">
+                <span class="time">${minsToTimeRailway(departureMins)}</span>
+                <span class="station"><strong>${seg.from}</strong> 発</span>
+            </div>`;
+            isFirstStation = false;
+        }
+
+        // 所要時間計算
         let type = "各駅停車";
         let speedFactor = 1.0;
         if (seg.allExpress) {
@@ -377,52 +439,68 @@ function performSearch() {
         const duration = Math.ceil(seg.rawDuration * speedFactor);
         const arrivalMins = departureMins + duration;
 
-        // 運賃計算
+        // 運賃
         const fare = 150 + (Math.floor(duration / 3) * 20); 
-        totalFare += (index === 0) ? fare : (fare - 50);
+        totalFare += (i === 0) ? fare : (fare - 50);
 
-        // 移動バー
+        // バー描画
         timelineHTML += `
             <div class="train-info" style="border-left: 4px solid ${seg.lineColor}; padding-left:10px; margin: 5px 0 5px 15px;">
                 <div style="font-weight:bold; color:${seg.lineColor};">
                     ${seg.lineName} [${type}]
                 </div>
                 <div style="font-size:12px; color:#666;">
-                    ${minsToTime(departureMins)}発 → ${minsToTime(arrivalMins)}着 (所要${duration}分)
+                    ${minsToTimeRailway(departureMins)}発 → ${minsToTimeRailway(arrivalMins)}着 (${duration}分)
                 </div>
             </div>`;
-        
-        // 現在時刻を到着時刻に進める
+
         currentMins = arrivalMins;
-    });
+    }
 
-    // 最終到着
-    timelineHTML += `
-        <div class="timeline-point arrival">
-            <span class="time">${minsToTime(currentMins)}</span>
-            <span class="station"><strong>${toVal}</strong> 着</span>
-        </div>`;
+    // 最終結果表示
+    if (isRoutePossible) {
+        timelineHTML += `
+            <div class="timeline-point arrival">
+                <span class="time">${minsToTimeRailway(currentMins)}</span>
+                <span class="station"><strong>${toVal}</strong> 着</span>
+            </div>`;
+            
+        const totalDuration = currentMins - inputMins;
 
-    const totalDuration = currentMins - timeToMins(timeVal); // 待ち時間込みの総所要時間
-
-    // 結果表示
-    const resDiv = document.getElementById('search-results');
-    resDiv.style.display = 'block';
-    resDiv.innerHTML = `
-        <div class="result-card">
-            <div class="result-header" style="background:#b4b4b4; color:#fff;">
-                <div class="route-summary" style="font-size:1.1em;">
-                    ${fromVal} <small>から</small> ${toVal} <small>までの経路</small>
+        const resDiv = document.getElementById('search-results');
+        resDiv.style.display = 'block';
+        resDiv.innerHTML = `
+            <div class="result-card">
+                <div class="result-header" style="background:#2c3e50; color:#fff;">
+                    <div class="route-summary" style="font-size:1.1em;">
+                        ${fromVal} <small>to</small> ${toVal}
+                    </div>
+                    <div class="route-meta" style="margin-top:5px;">
+                        到着: <strong>${minsToTimeRailway(currentMins)}</strong> / 総所要: ${totalDuration}分 / 運賃: ${totalFare}円
+                    </div>
                 </div>
-                <div class="route-meta" style="margin-top:5px;">
-                    到着時刻: <strong>${minsToTime(currentMins)}</strong> (総所要: ${totalDuration}分) / 運賃: <strong>${totalFare}円</strong>
+                <div class="result-body">
+                    <div class="timeline">
+                        ${timelineHTML}
+                    </div>
                 </div>
             </div>
-            <div class="result-body">
-                <div class="timeline">
-                    ${timelineHTML}
+        `;
+    } else {
+        // 終電アウトの場合
+        const resDiv = document.getElementById('search-results');
+        resDiv.style.display = 'block';
+        resDiv.innerHTML = `
+            <div class="result-card">
+                <div class="result-header" style="background:#7f8c8d; color:#fff;">
+                    <div class="route-summary">経路計算不能</div>
+                </div>
+                <div class="result-body">
+                    <div class="timeline">
+                        ${timelineHTML}
+                    </div>
                 </div>
             </div>
-        </div>
-    `;
+        `;
+    }
 }
