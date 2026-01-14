@@ -276,11 +276,7 @@ footer { background: #222; color: #fff; padding: 50px 0 30px; margin-top: 80px; 
     margin-left: 10px;
     vertical-align: middle;
 }
-
-/* スマホ対応 */
-@media (max-width: 768px) {
     .search-section { margin-top: 0; background: #fff; padding: 20px 0; }
     .search-box-wrapper { box-shadow: none; border: 1px solid #eee; }
     .arrow-icon { display: none; } /* スマホでは矢印を消す */
     .input-group { width: 100%; }
-}
