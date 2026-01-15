@@ -54,44 +54,48 @@
 
     <main class="container">
 
-        <section class="search-section">
-        <div class="container">
-            <div class="search-box-wrapper">
-                <h3 id="norikae" class="search-title"><i class="fas fa-search"></i> 乗換・運賃検索</h3>
-                <form id="search-form" onsubmit="return false;">
-                    <div class="search-inputs">
-                        <div class="input-group">
-                            <label><i class="fas fa-map-marker-alt"></i> 出発</label>
-                            <select id="station-from" required>
-                                <option value="">駅を選択</option>
-                                </select>
-                        </div>
-                        <div class="arrow-icon"><i class="fas fa-arrow-right"></i></div>
-                        <div class="input-group">
-                            <label><i class="fas fa-map-marker"></i> 到着</label>
-                            <select id="station-to" required>
-                                <option value="">駅を選択</option>
-                                </select>
-                        </div>
-                        <div class="input-group time-group">
-                            <label><i class="far fa-clock"></i> 日時</label>
-                            <input type="time" id="search-time" value="10:00" required>
-                        </div>
-                        <div class="search-options">
-    <label>
-        <input type="checkbox" id="check-ltd" checked> 特急「潮風ライナー」を利用する (+500円)
-    </label>
-</div>
+<section class="search-section">
+    <div class="container">
+        <div class="search-box-wrapper">
+            <h3 id="norikae" class="search-title"><i class="fas fa-search"></i> 乗換・運賃検索</h3>
+            <form id="search-form" onsubmit="return false;">
+                <div class="search-inputs">
+                    <div class="input-group">
+                        <label><i class="fas fa-map-marker-alt"></i> 出発</label>
+                        <select id="station-from" required>
+                            <option value="">駅を選択</option>
+                            </select>
                     </div>
-                    
-                    <button type="button" id="btn-search" class="btn-search">検索する</button>
-                </form>
-            </div>
-            
-            <div id="search-results" class="search-results" style="display: none;">
+
+                    <div class="arrow-icon"><i class="fas fa-arrow-right"></i></div>
+
+                    <div class="input-group">
+                        <label><i class="fas fa-map-marker"></i> 到着</label>
+                        <select id="station-to" required>
+                            <option value="">駅を選択</option>
+                            </select>
+                    </div>
+
+                    <div class="input-group time-group">
+                        <label><i class="far fa-clock"></i> 日時</label>
+                        <input type="time" id="search-time" value="10:00" required>
+                    </div>
+
+                    <div class="search-options" style="width: 100%; margin-top: 15px;">
+                        <label style="cursor: pointer;">
+                            <input type="checkbox" id="check-ltd" checked> 特急「潮風ライナー」を利用する (+500円)
+                        </label>
+                    </div>
                 </div>
+                
+                <button type="button" id="btn-search" class="btn-search" onclick="performSearch()">検索する</button>
+            </form>
         </div>
-    </section>
+        
+        <div id="search-results" class="search-results" style="display: none;">
+        </div>
+    </div>
+</section>
 
         <section id="news" class="section">
             <h3 class="section-title">重要なお知らせ・ニュース</h3>
