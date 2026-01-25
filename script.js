@@ -552,3 +552,35 @@ document.addEventListener('DOMContentLoaded', () => {
     const timeStr = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
     document.getElementById('search-time').value = timeStr;
 });
+
+document.addEventListener('DOMContentLoaded', () => {
+    // 1. 要素を取得
+    const menuToggle = document.getElementById('menu-toggle');
+    const mainNav = document.getElementById('main-nav');
+
+    // 2. ボタンがクリックされた時の処理
+    if (menuToggle && mainNav) {
+        menuToggle.addEventListener('click', () => {
+            // メニューに 'active' クラスを付け外しする
+            mainNav.classList.toggle('active');
+
+            // アイコンを 三 (bars) から ✕ (xmark) に切り替える
+            const icon = menuToggle.querySelector('i');
+            if (icon.classList.contains('fa-bars')) {
+                icon.classList.replace('fa-bars', 'fa-xmark');
+            } else {
+                icon.classList.replace('fa-xmark', 'fa-bars');
+            }
+        });
+
+        // 3. メニューリンクをクリックしたらメニューを閉じる（スマホ用利便性）
+        const navLinks = mainNav.querySelectorAll('a');
+        navLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                mainNav.classList.remove('active');
+                const icon = menuToggle.querySelector('i');
+                icon.classList.replace('fa-xmark', 'fa-bars');
+            });
+        });
+    }
+});
