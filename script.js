@@ -139,7 +139,7 @@ const allLines = [lineKanagawa, lineMiura, lineKinugasa, lineYamato, lineMiyagas
 
 // --- 特急設定 ---
 
-// 潮風ライナー（観光・リゾート特急）
+// 特急「潮風」（観光・リゾート特急）
 const shiokazeStations = ["本厚木", "海老名", "藤沢", "鎌倉", "新逗子", "武山", "三崎口", "三崎港"];
 
 // 特急「都筑」（都市間直通ビジネス特急）
