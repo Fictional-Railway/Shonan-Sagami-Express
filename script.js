@@ -1,6 +1,6 @@
 /* ============================================================
-   湘南相模急行電鉄 (SER) 統合運行管理システム Ver 9.5 (Professional Edition)
-   Update: ネットワーク接続完全化・UIフィードバック強化
+   湘南相模急行電鉄 (SER) 統合運行管理システム Ver 10.0 (Tsuzuki Update)
+   Update: 南大和線・港北線直通特急「都筑」の実装、特急コスト計算の最適化
    ============================================================ */
 
 // ■■■■■ 1. 定数・データ定義 ■■■■■
@@ -137,13 +137,34 @@ const lineKohoku = {
 
 const allLines = [lineKanagawa, lineMiura, lineKinugasa, lineYamato, lineMiyagase, lineKohoku];
 
-// 潮風ライナーの停車駅
+// --- 特急設定 ---
+
+// 潮風ライナー（観光・リゾート特急）
 const shiokazeStations = ["本厚木", "海老名", "藤沢", "鎌倉", "新逗子", "武山", "三崎口", "三崎港"];
+
+// 特急「都筑」（都市間直通ビジネス特急）
+const tsuzukiStations = ["綾瀬中央", "上渋谷", "二俣川", "横浜", "新横浜", "センター南", "センター北", "登戸"];
 
 // グラフ変数
 let stationGraph = {};
 
 // ■■■■■ 2. 内部ロジック関数 ■■■■■
+
+/**
+ * 2駅間の標準所要時間を取得（特急コスト計算用）
+ */
+function getStandardTimeCost(from, to) {
+    // 同じ路線内での時間を探す
+    for (const line of allLines) {
+        const s1 = line.stations.find(s => s.name === from);
+        const s2 = line.stations.find(s => s.name === to);
+        if (s1 && s2) {
+            return Math.abs(s1.time - s2.time);
+        }
+    }
+    // 異なる路線の場合は概算（直通特急用）
+    return 15; 
+}
 
 /**
  * ネットワーク構築：全路線の駅を繋ぎ合わせる
@@ -178,24 +199,40 @@ function buildGraph() {
         }
     });
 
-    // 潮風ライナー路線の登録
-    for (let i = 0; i < shiokazeStations.length - 1; i++) {
-        const from = shiokazeStations[i];
-        const to = shiokazeStations[i+1];
-        if(stationGraph[from] && stationGraph[to]) {
-            const edge = {
-                lineId: "LTD_SHIOKAZE",
-                lineName: "潮風ライナー",
-                lineColor: "#e74c3c",
-                lineInterval: 30,
-                cost: 12,
-                isExpress: true,
-                isLimitedExp: true
-            };
-            stationGraph[from].push({ to: to, ...edge });
-            stationGraph[to].push({ to: from, ...edge });
+    // 共通関数：特急路線のエッジ追加
+    const addLimitedExpress = (stations, id, name, color, interval) => {
+        for (let i = 0; i < stations.length - 1; i++) {
+            const from = stations[i];
+            const to = stations[i+1];
+            
+            // 基礎となる移動時間を計算し、特急速度（0.65倍）にする
+            let standardCost = getStandardTimeCost(from, to);
+            // 二俣川など路線またぎの箇所は補正（仮想的な所要時間）
+            if (from === "上渋谷" && to === "二俣川") standardCost = 15; // SY線内
+            if (from === "二俣川" && to === "横浜") standardCost = 22; // SH線内
+            
+            // 特急所要時間（最低2分は確保）
+            const ltdCost = Math.max(2, Math.floor(standardCost * 0.65));
+
+            if(stationGraph[from] && stationGraph[to]) {
+                const edge = {
+                    lineId: id,
+                    lineName: name,
+                    lineColor: color,
+                    lineInterval: interval,
+                    cost: ltdCost,
+                    isExpress: true,
+                    isLimitedExp: true
+                };
+                stationGraph[from].push({ to: to, ...edge });
+                stationGraph[to].push({ to: from, ...edge });
+            }
         }
-    }
+    };
+
+    // 特急路線の登録
+    addLimitedExpress(shiokazeStations, "LTD_SHIOKAZE", "特急 潮風ライナー", "#e74c3c", 30);
+    addLimitedExpress(tsuzukiStations, "LTD_TSUZUKI", "特急 都筑", "#C5A059", 20); // 都筑は20分間隔で頻発
 }
 
 /**
@@ -241,7 +278,9 @@ function findPath(startName, endName, useLimitedExp) {
 
 // 駅コード取得ユーティリティ
 function getStationCode(stationName, lineId = null) {
-    if (lineId === "LTD_SHIOKAZE") lineId = null;
+    // 特急IDは無視して元の駅コードを探す
+    if (lineId && lineId.startsWith("LTD")) lineId = null; 
+    
     for (const line of allLines) {
         if (lineId && line.id !== lineId) continue;
         const index = line.stations.findIndex(s => s.name === stationName);
@@ -289,15 +328,15 @@ function performSearch() {
     // 表示リセット
     if (!resDiv) return;
     resDiv.style.display = 'block';
-    resDiv.innerHTML = '<div style="padding:20px; text-align:center; color:#666;">検索中...</div>';
+    resDiv.innerHTML = '<div style="padding:20px; text-align:center; color:#666;"><i class="fas fa-spinner fa-spin"></i> 経路を計算中...</div>';
 
     // 入力バリデーション
     if (!fromVal || !toVal) {
-        resDiv.innerHTML = '<div class="error-msg" style="color:#c0392b; padding:15px; background:#f9ebea; border-radius:5px; margin:10px;">出発駅と到着駅を選択してください。</div>';
+        resDiv.innerHTML = '<div class="error-msg">出発駅と到着駅を選択してください。</div>';
         return;
     }
     if (fromVal === toVal) {
-        resDiv.innerHTML = '<div class="error-msg" style="color:#c0392b; padding:15px; background:#f9ebea; border-radius:5px; margin:10px;">出発駅と到着駅が同じです。</div>';
+        resDiv.innerHTML = '<div class="error-msg">出発駅と到着駅が同じです。</div>';
         return;
     }
 
@@ -310,7 +349,7 @@ function performSearch() {
     // 経路が見つからない場合のフィードバック
     if (!rawPath) {
         resDiv.innerHTML = `
-            <div class="error-msg" style="color:#c0392b; padding:20px; background:#f9ebea; border-radius:5px; margin:10px;">
+            <div class="error-msg">
                 <h4 style="margin-top:0;">経路が見つかりませんでした</h4>
                 <p style="font-size:14px;">以下の理由が考えられます：</p>
                 <ul style="font-size:13px; text-align:left;">
@@ -376,8 +415,8 @@ function performSearch() {
 
         if (!isFirstStation) {
             timelineHTML += `
-            <div class="timeline-point transfer" style="margin:10px 0; border-top:1px dashed #ccc; padding-top:10px;">
-                <span class="time" style="font-weight:bold; color:#2c3e50;">${minsToTimeRailway(currentMins)}着</span>
+            <div class="timeline-point transfer">
+                <span class="time">${minsToTimeRailway(currentMins)}着</span>
                 <span class="station" style="margin-left:10px;">${seg.from} <small style="color:#7f8c8d;">[乗換]</small></span>
             </div>
             <div style="font-size:12px; color:#e67e22; margin-left:55px; padding:5px 0;">
@@ -386,8 +425,8 @@ function performSearch() {
         } else {
             const code = getStationCode(seg.from, seg.lineId.startsWith("LTD") ? null : seg.lineId);
             timelineHTML += `
-            <div class="timeline-point departure" style="margin-bottom:10px;">
-                <span class="time" style="font-weight:bold; color:#2c3e50; font-size:1.1em;">${minsToTimeRailway(departureMins)}発</span>
+            <div class="timeline-point departure">
+                <span class="time" style="font-size:1.1em;">${minsToTimeRailway(departureMins)}発</span>
                 <span class="station" style="margin-left:10px;"><strong>[${code}] ${seg.from}</strong></span>
             </div>`;
             isFirstStation = false;
@@ -397,9 +436,11 @@ function performSearch() {
         let speedFactor = 1.0;
         let passingWaitTime = 0;
         let waitingHubs = [];
+        let specialIcon = "";
         
         if (seg.isLimitedExp) {
-            type = "潮風ライナー";
+            type = seg.lineName; // "特急 潮風ライナー" or "特急 都筑"
+            specialIcon = '<i class="fas fa-star" style="color:#f1c40f; margin-right:5px;"></i> ';
             totalLtdFee += 500; 
         } else if (seg.allExpress) {
             type = "急行"; 
@@ -414,7 +455,8 @@ function performSearch() {
             });
         }
         
-        const runDuration = Math.ceil(seg.rawDuration * speedFactor);
+        // 特急の場合はすでにコストが最適化されているのでspeedFactorは1.0
+        const runDuration = (seg.isLimitedExp) ? seg.rawDuration : Math.ceil(seg.rawDuration * speedFactor);
         const totalSegDuration = runDuration + passingWaitTime;
         const arrivalMins = departureMins + totalSegDuration;
 
@@ -425,9 +467,9 @@ function performSearch() {
         let waitNote = waitingHubs.length > 0 ? `<div style="margin-top:4px; font-size:11px; color:#d35400;">※ ${waitingHubs.join("、")} で上位列車の通過待ちを行います</div>` : '';
 
         timelineHTML += `
-            <div class="train-info" style="border-left: 5px solid ${seg.lineColor}; padding-left:15px; margin: 5px 0 5px 60px; background:#fdfdfd; padding:10px; border-radius:0 5px 5px 0;">
-                <div style="font-weight:bold; color:${seg.lineColor};">${seg.lineName} (${type})</div>
-                <div style="font-size:13px; color:#555;">${seg.to} 行</div>
+            <div class="train-info" style="border-left: 5px solid ${seg.lineColor};">
+                <div style="font-weight:bold; color:${seg.lineColor}; font-size:1.05em;">${specialIcon}${type}</div>
+                <div style="font-size:13px; color:#555;">${seg.to} 行 <span style="margin-left:10px;">(${totalSegDuration}分)</span></div>
                 ${waitNote}
             </div>`;
 
@@ -438,8 +480,8 @@ function performSearch() {
     if (isRoutePossible) {
         const lastCode = getStationCode(toVal);
         timelineHTML += `
-            <div class="timeline-point arrival" style="margin-top:10px; border-top:2px solid #2c3e50; padding-top:10px;">
-                <span class="time" style="font-weight:bold; color:#2c3e50; font-size:1.1em;">${minsToTimeRailway(currentMins)}着</span>
+            <div class="timeline-point arrival">
+                <span class="time" style="font-size:1.1em;">${minsToTimeRailway(currentMins)}着</span>
                 <span class="station" style="margin-left:10px;"><strong>[${lastCode}] ${toVal}</strong></span>
             </div>`;
             
@@ -447,16 +489,18 @@ function performSearch() {
 
         // 結果カードの書き出し
         resDiv.innerHTML = `
-            <div class="result-card" style="border:1px solid #ccc; border-radius:8px; overflow:hidden; box-shadow:0 4px 6px rgba(0,0,0,0.1);">
-                <div class="result-header" style="background:#4b4b4b; color:#fff; padding:15px;">
-                    <div style="font-size:0.9em; opacity:0.8;">経路1</div>
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div class="result-card">
+                <div class="result-header">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px;">
                         <span style="font-size:1.2em; font-weight:bold;">${fromVal} → ${toVal}</span>
-                        <span style="font-size:1.1em;">${totalFare + totalLtdFee}円</span>
+                        <div style="text-align:right;">
+                            <span style="font-size:0.8em; font-weight:bold; color:#f1c40f;">　${(totalFare + totalLtdFee).toLocaleString()}円</span>
+                            
+                        </div>
                     </div>
-                    <div style="margin-top:8px; font-size:0.9em;">所要時間: ${totalDuration}分</div>
+                    <div style="margin-top:8px; font-size:0.9em;"><i class="far fa-clock"></i> 所要時間: ${totalDuration}分</div>
                 </div>
-                <div class="result-body" style="padding:20px; background:#fff;">
+                <div class="result-body">
                     <div class="timeline">${timelineHTML}</div>
                 </div>
             </div>`;
@@ -469,24 +513,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // 運行データの初期構築
     buildGraph();
 
-    // UI制御：モバイルメニュー等（必要に応じて）
-    const toggle = document.getElementById('menu-toggle');
-    const nav = document.getElementById('main-nav');
-    if (toggle && nav) toggle.addEventListener('click', () => nav.classList.toggle('active'));
-
-    // 運行情報の時刻更新
-    const updateTickerTime = () => {
-        const now = new Date();
-        const timeStr = `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}更新`;
-        const el = document.getElementById('update-time');
-        if (el) el.textContent = timeStr;
-    };
-    updateTickerTime();
-    setInterval(updateTickerTime, 60000);
-
     // セレクトボックスの動的生成
     const fromSelect = document.getElementById('station-from');
     const toSelect = document.getElementById('station-to');
+
+    // 検索ボタンへのイベントリスナー追加
+    const btnSearch = document.getElementById('btn-search');
+    if (btnSearch) {
+        btnSearch.addEventListener('click', performSearch);
+    }
 
     if (fromSelect && toSelect) {
         allLines.forEach(line => {
@@ -512,7 +547,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 検索ボタンへのイベント割り当て
-    const btn = document.getElementById('btn-search');
-    if (btn) btn.addEventListener('click', performSearch);
+    // デフォルト時刻設定
+    const now = new Date();
+    const timeStr = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+    document.getElementById('search-time').value = timeStr;
 });

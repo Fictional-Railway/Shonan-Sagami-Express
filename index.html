@@ -64,16 +64,16 @@
                         <label><i class="fas fa-map-marker-alt"></i> 出発</label>
                         <select id="station-from" required>
                             <option value="">駅を選択</option>
-                            </select>
+                        </select>
                     </div>
 
-                    <div class="arrow-icon"><i class="fas fa-arrow-right"></i></div>
+                    <div class="arrow-icon"><i class="fas fa-arrow-down"></i></div>
 
                     <div class="input-group">
                         <label><i class="fas fa-map-marker"></i> 到着</label>
                         <select id="station-to" required>
                             <option value="">駅を選択</option>
-                            </select>
+                        </select>
                     </div>
 
                     <div class="input-group time-group">
@@ -81,18 +81,19 @@
                         <input type="time" id="search-time" value="10:00" required>
                     </div>
 
-                    <div class="search-options" style="width: 100%; margin-top: 15px;">
-                        <label style="cursor: pointer;">
-                            <input type="checkbox" id="check-ltd" checked> 特急「潮風ライナー」を利用する (+500円)
+                    <div class="search-options">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="check-ltd"> 
+                            <span>特急「潮風」「都筑」を利用する <span class="surcharge">(+500円)</span></span>
                         </label>
                     </div>
                 </div>
                 
-                <button type="button" id="btn-search" class="btn-search" onclick="performSearch()">検索する</button>
+                <button type="button" id="btn-search" class="btn-search">検索する</button>
             </form>
         </div>
         
-        <div id="search-results" class="search-results" style="display: none;">
+        <div id="search-results" class="search-results">
         </div>
     </div>
 </section>
@@ -137,7 +138,7 @@
                 <article class="train-card">
                     <div class="train-tag">特急「潮風ライナー」</div>
                     <h4>2000系 Blue Horizon</h4>
-                    <p>相模湾の水平線をイメージした前傾型。全車転換クロスシートで、快適な旅を保証します。</p><img src="./image/2000系(HP掲載用)-風景追加.png" width="100%" style="border-radius: 5px; margin-top: 5px;" alt="">
+                    <p>相模湾の水平線をイメージした前傾型。全車転換クロスシートで、快適な旅を保証します。</p><img src="./image/2000系(HP掲載用)-風景&車内照明追加.png" width="100%" style="border-radius: 5px; margin-top: 5px;" alt="">
                 </article>
                 <article class="train-card">
                     <div class="train-tag secondary">急行・区間急行・普通</div>
