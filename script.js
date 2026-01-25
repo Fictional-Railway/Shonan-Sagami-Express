@@ -553,18 +553,24 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('search-time').value = timeStr;
 });
 
+/* ==========================================
+   S.S.E.R. 公式サイト制御スクリプト
+   1. ハンバーガーメニューの開閉
+   2. 運行情報のリアルタイム時刻更新
+   ========================================== */
+
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. 要素を取得
+    
+    // ----- 1. ハンバーガーメニュー制御 -----
     const menuToggle = document.getElementById('menu-toggle');
     const mainNav = document.getElementById('main-nav');
 
-    // 2. ボタンがクリックされた時の処理
     if (menuToggle && mainNav) {
         menuToggle.addEventListener('click', () => {
-            // メニューに 'active' クラスを付け外しする
+            // メニューの表示・非表示を切り替え
             mainNav.classList.toggle('active');
 
-            // アイコンを 三 (bars) から ✕ (xmark) に切り替える
+            // アイコンを「三」から「✕」に切り替え
             const icon = menuToggle.querySelector('i');
             if (icon.classList.contains('fa-bars')) {
                 icon.classList.replace('fa-bars', 'fa-xmark');
@@ -572,15 +578,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 icon.classList.replace('fa-xmark', 'fa-bars');
             }
         });
-
-        // 3. メニューリンクをクリックしたらメニューを閉じる（スマホ用利便性）
-        const navLinks = mainNav.querySelectorAll('a');
-        navLinks.forEach(link => {
-            link.addEventListener('click', () => {
-                mainNav.classList.remove('active');
-                const icon = menuToggle.querySelector('i');
-                icon.classList.replace('fa-xmark', 'fa-bars');
-            });
-        });
     }
+
+
+    // ----- 2. 運行情報の時刻更新（リアルタイム） -----
+    const updateTimeElement = document.getElementById('update-time');
+
+    function updateClock() {
+        if (updateTimeElement) {
+            const now = new Date();
+            const hours = now.getHours();
+            const minutes = now.getMinutes().toString().padStart(2, '0'); // 1桁の時に0を付ける（例: 09）
+            
+            // HTMLの中身を「現在の時:分更新」に書き換える
+            updateTimeElement.textContent = `${hours}:${minutes}更新`;
+        }
+    }
+
+    // ページを読み込んだ瞬間に一度実行
+    updateClock();
+
+    // 1分（60000ミリ秒）ごとに時計を更新し続ける
+    setInterval(updateClock, 60000);
+
 });
