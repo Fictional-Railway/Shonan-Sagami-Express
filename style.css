@@ -670,3 +670,182 @@ footer { background: #222; color: #fff; padding: 50px 0 30px; margin-top: 80px; 
     .news-meta { flex-direction: column; align-items: flex-start; gap: 5px; }
 }
 
+
+
+
+
+
+/* =========================================
+   乗換検索セクション
+   ========================================= */
+.search-section {
+    position: relative;
+    margin-top: -60px; /* メインビジュアルに重ねる */
+    z-index: 50;
+    margin-bottom: 40px;
+}
+
+.search-box-wrapper {
+    background: #fff;
+    padding: 25px;
+    border-radius: 8px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    border-top: 4px solid var(--ser-gold);
+}
+
+.search-title {
+    font-size: 18px;
+    font-weight: bold;
+    color: var(--ser-blue);
+    margin-bottom: 20px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
+.search-inputs {
+    display: flex;
+    align-items: flex-end;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.input-group {
+    flex: 1;
+    min-width: 200px;
+    display: flex;
+    flex-direction: column;
+}
+
+.input-group label {
+    font-size: 12px;
+    font-weight: bold;
+    color: #666;
+    margin-bottom: 5px;
+}
+
+.input-group select, .input-group input {
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 16px;
+    background: #fdfdfd;
+}
+
+.arrow-icon {
+    font-size: 20px;
+    color: #ccc;
+    padding-bottom: 10px;
+}
+
+.btn-search {
+    background: var(--ser-blue);
+    color: #fff;
+    border: none;
+    padding: 12px 40px;
+    border-radius: 4px;
+    font-weight: bold;
+    font-size: 16px;
+    cursor: pointer;
+    transition: 0.3s;
+    margin-top: 15px;
+    width: 100%;
+}
+
+.btn-search:hover {
+    background: #002244;
+    box-shadow: 0 4px 10px rgba(0,51,102,0.3);
+}
+
+/* 検索結果カード */
+.search-results {
+    margin-top: 20px;
+}
+
+.result-card {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 15px;
+    overflow: hidden;
+}
+
+.result-header {
+    background: #f0f4f8;
+    padding: 10px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #ddd;
+}
+
+.route-summary {
+    font-weight: bold;
+    font-size: 18px;
+    color: var(--ser-blue);
+}
+
+.route-meta {
+    font-size: 12px;
+    color: #666;
+}
+
+.result-body {
+    padding: 20px;
+}
+
+.timeline {
+    position: relative;
+    padding-left: 20px;
+    border-left: 4px solid #ddd;
+    margin-left: 10px;
+}
+
+.timeline-point {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.timeline-point::before {
+    content: '';
+    position: absolute;
+    left: -29px;
+    top: 5px;
+    width: 14px;
+    height: 14px;
+    background: #fff;
+    border: 3px solid #666;
+    border-radius: 50%;
+}
+
+.timeline-point.departure::before { border-color: var(--ser-blue); }
+.timeline-point.arrival::before { border-color: var(--ser-blue); background: var(--ser-blue); }
+
+.time { font-weight: bold; font-size: 18px; margin-right: 10px; display: inline-block; width: 60px; }
+.station { font-weight: bold; font-size: 16px; }
+
+.train-info {
+    margin: 10px 0 10px 40px;
+    padding: 8px;
+    background: #f9f9f9;
+    border-radius: 4px;
+    font-size: 13px;
+    color: #555;
+    border-left: 3px solid var(--ser-gold);
+}
+
+.transfer-badge {
+    display: inline-block;
+    background: #e67e22;
+    color: #fff;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    margin-left: 10px;
+    vertical-align: middle;
+}
+
+/* スマホ対応 */
+    .search-section { margin-top: 0; background: #fff; padding: 20px 0; }
+    .search-box-wrapper { box-shadow: none; border: 1px solid #eee; }
+    .arrow-icon { display: none; } /* スマホでは矢印を消す */
+    .input-group { width: 100%; }
