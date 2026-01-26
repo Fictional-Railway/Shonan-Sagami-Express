@@ -30,136 +30,24 @@
         </div>
     </header>
     
-    <section class="main-visual">
-        <div class="hero-overlay">
-            <h2>海と街、人と未来を最速で繋ぐ。</h2>
-            <p>S.S.E.R.は、神奈川を縦断する新しい動脈です。</p>
-            <div class="hero-btns">
-                <a href="./index.html#norikae" class="btn-primary"><i class="fas fa-search"></i> 時刻表検索</a>
-                <a href="#" class="btn-primary2"><i class="fas fa-yen-sign"></i> 運賃案内</a>
-            </div>
+    <!--湘南相模急行電鉄は、神奈川急行電鉄に社名を変更しました。それに伴い、URLの変更が行われました　説明書いて-->
+    <section class="announcement">
+        <div class="container">
+            <br>
+            <br>
+            <h1 style="text-align: center; font-size: 1.5rem; margin-bottom: 30px; color: red; text-shadow: 2px 2px 4px rgba(255, 0, 0, 0.5);">☆社名変更のお知らせ☆</h1>
+            <p>湘南相模急行電鉄は、2026年1月26日より神奈川急行電鉄に社名を変更しました。<br>
+            新しい公式サイトは<a href="https://fictional-railway.github.io/Kanakyu-Railway">こちら</a>からご覧いただけます。</p>
+            <p>旧社名での長らくのご愛顧、誠にありがとうございました。</p>
         </div>
     </section>
 
-    <div class="top-ticker">
-        
-        <div class="container ticker-flex">
-            <span class="badge">運行情報</span>
-            <div class="ticker-text">
-                <p id="status-msg">【平常運転】現在、全線で平常通り運転しております。</p>
-            </div>
-            <span class="update-time" id="update-time">1:29更新</span>
-        </div>
-    </div>
-
-    <main class="container">
-
-<section class="search-section">
-    <div class="container">
-        <div class="search-box-wrapper">
-            <h3 id="norikae" class="search-title"><i class="fas fa-search"></i> 乗換・運賃検索</h3>
-            <form id="search-form" onsubmit="return false;">
-                <div class="search-inputs">
-                    <div class="input-group">
-                        <label><i class="fas fa-map-marker-alt"></i> 出発</label>
-                        <select id="station-from" required>
-                            <option value="">駅を選択</option>
-                        </select>
-                    </div>
-
-                    <div class="arrow-icon"><i class="fas fa-arrow-down"></i></div>
-
-                    <div class="input-group">
-                        <label><i class="fas fa-map-marker"></i> 到着</label>
-                        <select id="station-to" required>
-                            <option value="">駅を選択</option>
-                        </select>
-                    </div>
-
-                    <div class="input-group time-group">
-                        <label><i class="far fa-clock"></i> 日時</label>
-                        <input type="time" id="search-time" value="10:00" required>
-                    </div>
-
-                    <div class="search-options">
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="check-ltd"> 
-                            <span>特急「潮風」「都筑」を利用する <span class="surcharge">(+500円)</span></span>
-                        </label>
-                    </div>
-                </div>
-                
-                <button type="button" id="btn-search" class="btn-search">検索する</button>
-            </form>
-        </div>
-        
-        <div id="search-results" class="search-results">
-        </div>
-    </div>
-</section>
-
-        <section id="news" class="section">
-            <h3 class="section-title">重要なお知らせ・ニュース</h3>
-            <div class="news-list">
-                <article class="news-item">
-                    <span class="news-date">2026.01.12</span>
-                    <span class="news-category label-dia">ダイヤ改正</span>
-                    <a href="#" class="news-link">【重要】新種別「区間急行」の導入およびダイヤ改正のお知らせ</a>
-                </article>
-                <article class="news-item">
-                    <span class="news-date">2026.01.10</span>
-                    <span class="news-category label-event">イベント</span>
-                    <a href="#" class="news-link">「三崎まぐろ祭り」開催に伴う臨時特急列車の運行について</a>
-                </article>
-                <article class="news-item">
-                    <span class="news-date">2026.01.05</span>
-                    <span class="news-category label-ticket">チケット</span>
-                    <a href="#" class="news-link">「S.S.E.R. 三崎・由比ヶ浜フリーパス」の発売を開始しました</a>
-                </article>
-            </div>
-        </section>
-
-        <section id="routemap" class="section">
-            <h3 class="section-title">路線図</h3>
-            <div class="route-map">
-                <img src="./image/KANAGAWA_Line_3.png" class="routemap-image" alt="神奈川線路線図">
-                <img src="./image/NISHI-MIURA_Line_4.png" class="routemap-image" alt="西三浦線路線図">
-                <img src="./image/MIYAGASE_Line_1.png" class="routemap-image" alt="宮ケ瀬線路線図">
-                <img src="./image/KINUGASA_Line_1.png" class="routemap-image2" alt="衣笠線線路線図">
-                <img src="./image/KŌHOKU_Line_3.png" class="routemap-image" alt="港北線路線図">
-                <img src="./image/MINAMI-YAMATO_Line_2.png" class="routemap-image2" alt="南大和線路線図">
-                
-            </div>
-        </section>
-
-        <section id="trains" class="section">
-            <h3 class="section-title">車両紹介</h3>
-            <div class="train-grid">
-                <article class="train-card">
-                    <div class="train-tag">特急「潮風」「都筑」</div>
-                    <h4>2000系 Blue Horizon</h4>
-                    <p>相模湾の水平線をイメージした前傾型。全車転換クロスシートで、快適な旅を保証します。</p><img src="./image/2000系(HP掲載用)-風景&車内照明追加.png" width="100%" style="border-radius: 5px; margin-top: 5px;" alt=""><p style="text-align: right; margin-right: 10px;">相模色</p><img src="./image/2000系(HP掲載用)-風景&車内照明追加-横浜色(1000番台).png" width="100%" style="border-radius: 5px; margin-top: 5px;" alt=""><p style="text-align: right; margin-right: 10px;">横浜色</p>
-                </article>
-                <article class="train-card">
-                    <div class="train-tag secondary">急行・区間急行・普通</div>
-                    <h4>1500系 Urban Liner</h4>
-                    <p>銀色のステンレスボディに地域色を纏った主力車両。12両まで連結運転可能で、高加速・高減速で過密ダイヤを支えます。</p><img src="./image/1500系-架線柱再作成(HP掲載用2).png" width="100%" style="border-radius: 5px; margin-top: 5px;" alt=""><p style="text-align: right; margin-right: 10px;">相模色</p><img src="./image/1500系-架線柱再作成-三浦色(HP掲載用)-風景変更版.png" width="100%" style="border-radius: 5px; margin-top: 5px;" alt=""><p style="text-align: right; margin-right: 10px;">三浦色</p><img src="./image/1500系-架線柱再作成-横浜色(HP掲載用).png" width="100%" style="border-radius: 5px; margin-top: 5px;" alt=""><p style="text-align: right; margin-right: 10px;">横浜色</p>
-                </article>
-                <article class="train-card">
-                    <div class="train-tag secondary">宮ケ瀬線全列車</div>
-                    <h4>3600形 Lake Nature</h4>
-                    <p>1976年より使用される、緑と青を纏った宮ケ瀬線専用の気動車。山間部の急勾配に強い設計です。</p><img src="./image/SSERキハ3600形.png" width="100%" style="border-radius: 5px; margin-top: 5px;" alt="">
-                </article>
-            </div>
-        </section>
-    </main>
-
     <footer>
         <div class="container">
-            <h4 style="font-weight: bold; font-size: 18px; margin-bottom: 10px;">湘南相模急行電鉄 (S.S.E.R.)</h4>
+            <h4 style="font-weight: bold; font-size: 18px; margin-bottom: 10px;">神奈川急行電鉄</h4>
             <p style="font-weight: 200; font-size: 13px;">〒251-0000 神奈川県鎌倉市小町４丁目６ー１</p>
             <p class="copyright">&copy; 2026 Shonan-Sagami Express Railway</p>
-            <p class="copyright disclaimer">湘南相模急行電鉄は架空の創作物であり、実際の地名・施設名とは一切関係ございません。</p>
+            <p class="copyright disclaimer">神奈川急行電鉄は架空の創作物であり、実際の地名・施設名とは一切関係ございません。</p>
             <a class="footer-link" href="https://fictional-railway.github.io/myrailways/">架空鉄道一覧はこちらから</a>
         </div>
     </footer>
